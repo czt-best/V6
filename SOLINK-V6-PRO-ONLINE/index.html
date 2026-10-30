@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0B0C0D">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="SOLINK V6 PRO — 以官方产品片为基准的 Three.js 宣传站：8 层轴向拆解、37 个零件、轨道闪电风暴与完整拆解实验室。黑、红、银官方配色与 ZHENLOE 背景音乐。">
+<title>SOLINK V6 PRO — AXIAL DRIVE / PRECISION IN MOTION</title>
+<link rel="icon" href="site/assets/solink-mark-red.png">
+<link rel="stylesheet" href="site/css/axial.css">
+<link rel="stylesheet" href="site/css/axial-theme.css">
+<link rel="stylesheet" href="site/css/showcase.css">
+</head>
+<body class="showcase">
+<div id="app">
+
+  <div class="bg-base" aria-hidden="true"></div>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-noise" aria-hidden="true"></div>
+  <div class="bg-vignette" aria-hidden="true"></div>
+
+  <main id="stage" aria-label="V6 Pro 三维精密拆解视图">
+    <div id="focusAura" aria-hidden="true"></div>
+    <canvas id="scene" tabindex="0" aria-label="可交互的 V6 Pro 三维模型。拖拽旋转，滚轮缩放，点击零件查看详情。"></canvas>
+    <div id="fxFlash" aria-hidden="true"></div>
+    <div id="axisLine" aria-hidden="true"></div>
+    <svg id="leaders" aria-hidden="true"></svg>
+    <div id="labels" aria-live="polite"></div>
+    <div id="layerTags" aria-live="polite"></div>
+    <div id="bracket" aria-hidden="true">
+      <span class="b tl"></span><span class="b tr"></span><span class="b bl"></span><span class="b br"></span>
+      <span class="bracket-tag">SELECTED</span>
+    </div>
+    <div id="tooltip" role="tooltip"></div>
+    <div class="stage-ticks" aria-hidden="true">
+      <span style="--i:0"></span><span style="--i:1"></span><span style="--i:2"></span><span style="--i:3"></span>
+      <span style="--i:4"></span><span style="--i:5"></span><span style="--i:6"></span><span style="--i:7"></span>
+    </div>
+  </main>
+
+  <header class="topbar">
+    <div class="brand">
+      <img class="brand-solink" src="site/assets/solink-mark-red.png" alt="Solink Motor">
+      <div class="brand-text">
+        <span class="brand-word">SOLINK <em>MOTOR</em></span>
+        <span class="brand-sub">V6 PRO <i>/</i> AXIAL TEARDOWN</span>
+      </div>
+    </div>
+
+    <div class="top-title">
+      <div class="top-kicker">CINEMA 4D SOURCE <span>·</span> AXIAL SERVICE SEQUENCE</div>
+      <div class="top-model">V6 <em>PRO</em> <b>8 LAYERS / 37 PARTS</b></div>
+    </div>
+
+    <div class="top-actions">
+      <button class="ghost-btn only-mobile" id="openParts" aria-label="打开轴向层清单">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>轴向</span>
+      </button>
+      <button class="ghost-btn only-mobile" id="openInfo" aria-label="打开详情面板">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.2v.2"/></svg><span>详情</span>
+      </button>
+      <div class="live-pill"><i></i><span>C4D MESH / 8 LAYERS</span></div>
+      <button class="help-btn desk-only" id="btnXrayTop" aria-label="切换外壳透明">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 12s3.2-5.2 9-5.2S21 12 21 12s-3.2 5.2-9 5.2S3 12 3 12z"/><circle cx="12" cy="12" r="2.4"/></svg>
+        <span class="help-txt">透视</span>
+      </button>
+      <button class="help-btn" id="openHelp" aria-label="操作指南">
+        <span class="q">i</span><span class="help-txt">操作指南</span>
+      </button>
+    </div>
+  </header>
+
+  <aside class="panel left-panel" id="leftPanel" aria-label="轴向拆解层与零件清单">
+    <div class="panel-glow" aria-hidden="true"></div>
+    <div class="panel-head">
+      <div>
+        <div class="eyebrow">AXIAL SERVICE STACK</div>
+        <h2>轴向拆解</h2>
+      </div>
+      <div class="head-count"><b>8</b><span>LAYERS</span></div>
+    </div>
+    <div class="index-meta">
+      <span><i class="dot blue"></i>8 层</span>
+      <span><i class="dot copper"></i>37 件</span>
+      <span><i class="dot green"></i>60 210 面</span>
+    </div>
+    <div class="layer-list" id="layerList"></div>
+    <div class="panel-foot">
+      <div class="foot-line">
+        <span>AXIAL TRAVEL</span>
+        <b id="leftTravel">00%</b>
+      </div>
+      <div class="mini-track"><i id="leftTravelBar"></i></div>
+      <div class="foot-note"><span id="leftStatus">ASSEMBLED</span><span id="leftLayer">L— / 8</span></div>
+    </div>
+    <button class="panel-close" id="closeParts" aria-label="关闭轴向层清单">×</button>
+  </aside>
+
+  <aside class="panel right-panel" id="rightPanel" aria-label="零件详情与模型数据">
+    <div class="panel-glow" aria-hidden="true"></div>
+    <div class="inspector-tabs" role="tablist" aria-label="详情标签">
+      <button class="itab active" id="tabPart" data-tab="part" role="tab" aria-selected="true">零件详情</button>
+      <button class="itab" id="tabMotor" data-tab="motor" role="tab" aria-selected="false">模型数据</button>
+    </div>
+    <div class="inspector-scroll" id="inspectorScroll">
+      <section class="tab-pane active" id="panePart" data-pane="part" role="tabpanel"></section>
+      <section class="tab-pane" id="paneMotor" data-pane="motor" role="tabpanel"></section>
+    </div>
+    <div class="scroll-fade" id="scrollFade" aria-hidden="true"></div>
+    <div class="scroll-hint" id="scrollHint" aria-hidden="true"><span>SCROLL</span><i>↓</i></div>
+    <button class="panel-close" id="closeInfo" aria-label="关闭详情面板">×</button>
+  </aside>
+
+  <div class="hint" id="hint">
+    <span class="hint-ring"><i></i></span>
+    <div><b>点击零件，或启动轴向拆解</b><em>CLICK A PART · START AXIAL EXPLODE</em></div>
+    <span class="hint-line"></span>
+  </div>
+
+  <div class="fx-dock" id="fxDock" aria-label="空间特效控制" aria-hidden="true">
+    <button class="fx-launch" id="btnDrift" type="button" title="空间漂移 / 退出漂移">
+      <span class="fx-bolt" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M13.5 2 4.5 13h5.8L9 22l10-12h-6z"/></svg>
+      </span>
+      <span class="fx-copy"><b id="driftLabel">空间漂移</b><em id="driftSub">DRIFT FIELD</em></span>
+      <span class="fx-pulse" aria-hidden="true"></span>
+    </button>
+    <button class="fx-bg" id="btnBgMode" type="button" title="切换影棚灰 / 深空黑">
+      <span class="fx-bg-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg>
+      </span>
+      <span class="fx-bg-copy"><b>背景</b><em id="bgModeLabel">影棚灰</em></span>
+    </button>
+  </div>
+
+  <div class="dock" id="dock" aria-label="拆解控制台">
+    <div class="dock-top">
+      <div class="dock-actions">
+        <button class="act primary" id="btnAxial" title="轴向拆解 / 反向装配">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M4 12h16"/><path d="m8 8-4 4 4 4M16 8l4 4-4 4"/><path d="M12 4v3M12 17v3"/></svg>
+          <span class="act-label"><b>轴向拆解</b><em>EXPLODE STACK</em></span>
+        </button>
+        <button class="act icon-only" id="btnStepPrev" title="上一层 / 上一步" aria-label="上一层">
+          <svg class="ico" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/><path d="M19 5v14"/></svg>
+        </button>
+        <button class="act icon-only" id="btnStepNext" title="下一层 / 下一步" aria-label="下一层">
+          <svg class="ico" viewBox="0 0 24 24"><path d="m10 6 6 6-6 6"/><path d="M5 5v14"/></svg>
+        </button>
+        <button class="act icon-only" id="btnXray" title="外壳透明 (T)" aria-label="外壳透明">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M3 12s3.2-5.2 9-5.2S21 12 21 12s-3.2 5.2-9 5.2S3 12 3 12z"/><circle cx="12" cy="12" r="2.4"/></svg>
+        </button>
+        <button class="act icon-only" id="btnLabels" title="显示当前层标注 (L)" aria-label="显示标注">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M4 6h10M4 12h16M4 18h8"/><path d="M18 4v5M15.5 6.5h5"/></svg>
+        </button>
+        <button class="act icon-only" id="btnSound" title="音效设置 / 音量 (S)" aria-label="音效设置与音量" aria-pressed="true">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M5 10v4h3l4 3V7l-4 3z"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8 8 0 0 1 0 12"/></svg>
+        </button>
+        <button class="act icon-only" id="btnReset" title="复位视角 (R)" aria-label="复位视角">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.6"/><path d="M4 4v5h5"/></svg>
+        </button>
+      </div>
+
+      <div class="dock-telemetry">
+        <div class="tele"><span>SELECTED</span><b id="partOut">—</b></div>
+        <div class="tele"><span>LAYER</span><b id="layerOut">—</b></div>
+        <div class="tele mode"><span>MODE</span><b id="modeOut">ASSEMBLED</b></div>
+      </div>
+    </div>
+
+    <div class="travel-row">
+      <div class="travel-label"><span>AXIAL TRAVEL</span><b id="travelOut">00%</b></div>
+      <div class="travel-control">
+        <div class="travel-track">
+          <i class="travel-fill" id="travelFill"></i>
+          <i class="travel-knob" id="travelKnob"></i>
+          <span class="travel-tick" style="left:0%"></span>
+          <span class="travel-tick" style="left:25%"></span>
+          <span class="travel-tick" style="left:50%"></span>
+          <span class="travel-tick" style="left:75%"></span>
+          <span class="travel-tick" style="left:100%"></span>
+        </div>
+        <input type="range" id="travelRange" min="0" max="100" value="0" step="1" aria-label="拆解行程">
+      </div>
+      <div class="travel-scale"><span>ASSEMBLED</span><span>EXPLODED</span></div>
+    </div>
+  </div>
+
+  <div class="sound-pop" id="soundPop" aria-hidden="true">
+    <div class="sound-pop-head"><span>MASTER VOLUME</span><b id="volOut">60%</b></div>
+    <input type="range" id="volumeRange" min="0" max="100" value="60" aria-label="音量">
+    <div class="sound-pop-foot"><span>Web Audio · procedural</span><button id="soundMute" type="button">静音</button><button id="soundTest" type="button">测试</button></div>
+  </div>
+
+  <div class="frame-corner fc-tl" aria-hidden="true"></div>
+  <div class="frame-corner fc-tr" aria-hidden="true"></div>
+  <div class="frame-corner fc-bl" aria-hidden="true"></div>
+  <div class="frame-corner fc-br" aria-hidden="true"></div>
+
+  <div id="loader">
+    <div class="pre-noise" aria-hidden="true"></div>
+    <header class="pre-head">
+      <div class="pre-brand">
+        <img src="site/assets/solink-mark-red.png" alt="Solink Motor">
+        <span><b>SOLINK</b> MOTOR</span>
+      </div>
+      <span class="pre-head-meta">AXIAL OBJECT / 01</span>
+      <span class="pre-head-meta pre-head-meta-r">C4D SOURCE · 03OK.c4d</span>
+    </header>
+
+    <div class="pre-stage">
+      <div class="pre-ghost" aria-hidden="true">AXIS</div>
+      <div class="pre-left">
+        <div class="pre-kicker">V6 PRO / AXIAL DRIVE</div>
+        <h1 class="pre-title">PRECISION<br><em>IN MOTION.</em></h1>
+        <p class="pre-copy">37 个独立零件，8 个轴向层，一条贯穿始终的电机轴。先看整机，再沿轴逐层拆开。</p>
+        <div class="pre-spec">
+          <span>37 <em>PARTS</em></span>
+          <span>8 <em>LAYERS</em></span>
+          <span>60 210 <em>TRIS</em></span>
+        </div>
+      </div>
+
+      <div class="pre-right">
+        <div class="pre-kicker">SYSTEM CHECK</div>
+        <div class="pre-loadline">
+          <div class="pre-loadbar"><i id="loadBar"></i></div>
+          <div class="pre-loadmeta"><span id="loadText">读取 37 个网格…</span><b id="loadPct">0%</b></div>
+        </div>
+        <div class="pre-options-label">START OPTIONS <span>启动设置</span></div>
+        <div class="launch-options">
+          <button type="button" class="launch-opt is-on" data-opt="intro"><span class="opt-switch"><i></i></span>入场动画</button>
+          <button type="button" class="launch-opt is-on" data-opt="auto"><span class="opt-switch"><i></i></span>自动旋转</button>
+          <button type="button" class="launch-opt is-on" data-opt="sound"><span class="opt-switch"><i></i></span>声音 / 音乐</button>
+          <button type="button" class="launch-opt" data-opt="particles"><span class="opt-switch"><i></i></span>环境粒子</button>
+        </div>
+        <button id="enterBtn" class="enter-btn" type="button" disabled>
+          <span id="enterText">INITIALIZING</span>
+          <svg viewBox="0 0 24 24"><path d="M4 12h15M14 6l6 6-6 6"/></svg>
+        </button>
+        <div class="pre-track">
+          <span class="pre-track-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <span>SOUNDTRACK / ZHENLOE — WE NEVER</span>
+        </div>
+      </div>
+    </div>
+
+    <footer class="pre-foot">
+      <span>SOLINK MOTOR / V6 PRO</span>
+      <span>AXIAL TEARDOWN · 2026</span>
+      <span>C4D MESH / THREE.JS / WEB AUDIO</span>
+    </footer>
+  </div>
+
+  <div id="site" class="site">
+    <div class="sc-grain" aria-hidden="true"></div>
+    <div class="sc-cursor" id="scCursor" aria-hidden="true"></div>
+
+    <header class="sc-nav" id="scNav">
+      <a class="sc-brand" href="#scHero" data-scroll>
+        <img src="site/assets/solink-mark-red.png" alt="Solink Motor">
+        <span><b>SOLINK</b><em>MOTOR</em></span>
+      </a>
+      <nav class="sc-links" aria-label="网站章节">
+        <a href="#scAxial" data-scroll><i>01</i> AXIAL</a>
+        <a href="#scStorm" data-scroll><i>02</i> STORM</a>
+        <a href="#scMaterial" data-scroll><i>03</i> MATERIAL</a>
+        <a href="#scData" data-scroll><i>04</i> DATA</a>
+        <a href="#scFilm" data-scroll><i>05</i> FILM</a>
+      </nav>
+      <div class="sc-nav-actions">
+        <button class="sc-sound" id="scMusic" type="button" aria-label="背景音乐开关" aria-pressed="true">
+          <span class="sc-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <span class="sc-sound-label">WE NEVER</span>
+        </button>
+        <button class="sc-bg-toggle" id="scBgToggle" type="button">DEEP SPACE</button>
+        <button class="sc-lab-toggle" id="scLabToggle" type="button">TEARDOWN LAB</button>
+        <button class="sc-menu-btn" id="scMenuBtn" type="button" aria-label="打开菜单">MENU</button>
+      </div>
+    </header>
+    <div class="sc-read-progress"><i id="scReadProgress"></i></div>
+
+    <main class="sc-main">
+      <section class="sc-section sc-hero" id="scHero">
+        <div class="sc-hero-rail" aria-hidden="true">
+          <span>V6 / PRO</span>
+          <i></i>
+          <span>AXIAL DRIVE SYSTEM</span>
+        </div>
+        <div class="sc-hero-copy">
+          <div class="sc-kicker"><span>SOLINK MOTOR</span><i></i><span>V6 PRO</span></div>
+          <h1 class="sc-display"><span>V6</span><span class="sc-outline">PRO</span></h1>
+          <div class="sc-hero-tag">AXIAL DRIVE <b>/</b> PRECISION IN MOTION</div>
+          <p class="sc-hero-copytext">A motor designed as one continuous axis. Eight service layers, thirty-seven components, and a single red line that holds the entire system together.</p>
+          <div class="sc-hero-actions">
+            <a class="sc-btn sc-btn-solid" href="#scAxial" data-scroll><span>EXPLORE THE AXIS</span><i>↘</i></a>
+            <button class="sc-btn sc-btn-line" id="scHeroLab" type="button"><span>OPEN TEARDOWN LAB</span><i>↗</i></button>
+          </div>
+        </div>
+        <div class="sc-hero-foot">
+          <div class="sc-foot-cell"><span>01</span><b>37</b><em>INDEPENDENT PARTS</em></div>
+          <div class="sc-foot-cell"><span>02</span><b>8</b><em>AXIAL LAYERS</em></div>
+          <div class="sc-foot-cell"><span>03</span><b>60 210</b><em>TRIANGLES</em></div>
+          <div class="sc-foot-note"><span>03OK.c4d</span><em>CINEMA 4D SOURCE</em></div>
+          <div class="sc-scroll-cue"><span>SCROLL TO DISASSEMBLE</span><i></i></div>
+        </div>
+        <div class="sc-hero-hud" aria-hidden="true">
+          <span>LOCAL AXIS / Y</span><span>SEQUENCE / REAR → OUTPUT</span>
+        </div>
+      </section>
+
+      <section class="sc-section sc-manifesto" id="scManifesto">
+        <div class="sc-manifesto-grid">
+          <div class="sc-manifesto-title">
+            <div class="sc-kicker"><span>00 / MANIFESTO</span><i></i><span>SOLINK V6</span></div>
+            <h2 class="sc-headline">THE MOTOR<br>IS THE<br><em>MESSAGE.</em></h2>
+          </div>
+          <div class="sc-manifesto-copy">
+            <div class="sc-body-index">A / 01</div>
+            <p>不是把零件堆在一起，而是让每一个零件都有明确的位置、方向和任务。V6 Pro 的所有结构都围绕一条轴展开，拆解顺序就是设计顺序。</p>
+            <p>从后盖到输出齿轮，八层结构连续、克制、可读。黑色外壳收敛光线，红色内衬暴露能量，银色轴系只负责一件事：把旋转传到该去的地方。</p>
+          </div>
+          <div class="sc-layer-diagram" aria-hidden="true">
+            <div class="sc-diagram-axis"></div>
+            <div class="sc-diagram-ticks">
+              <span>01</span><span>02</span><span>03</span><span>04</span><span>05</span><span>06</span><span>07</span><span>08</span>
+            </div>
+            <div class="sc-diagram-label">ONE CONTINUOUS AXIS / 8 SERVICE STATIONS</div>
+          </div>
+        </div>
+        <div class="sc-marquee" aria-hidden="true">
+          <div>37 PARTS <i></i> 8 AXIAL LAYERS <i></i> 60 210 TRIANGLES <i></i> ONE AXIS <i></i> 37 PARTS <i></i> 8 AXIAL LAYERS <i></i> 60 210 TRIANGLES <i></i> ONE AXIS <i></i></div>
+        </div>
+      </section>
+
+      <section class="sc-section sc-axial" id="scAxial">
+        <div class="sc-axial-sticky">
+          <div class="sc-axial-copy">
+            <div class="sc-kicker"><span>01 / AXIAL SEQUENCE</span><i></i><span>8 STATIONS</span></div>
+            <h2 class="sc-headline sc-headline-small">EIGHT DECISIONS<br>ALONG <em>ONE AXIS.</em></h2>
+            <p class="sc-section-copy">向下滚动，整台电机沿轴向展开。每一层都是一个服务站，也是一次设计取舍。</p>
+            <div class="sc-active-layer">
+              <div class="sc-active-no" id="scLayerNo">01</div>
+              <div class="sc-active-copy">
+                <b id="scLayerName">后盖与紧固</b>
+                <em id="scLayerEn">REAR COVER / FASTENERS</em>
+                <p id="scLayerDesc">后盖、接线块、固定环与四颗长弹簧螺栓，是整机的尾部封装层。</p>
+              </div>
+            </div>
+            <div class="sc-axial-progress">
+              <div class="sc-progress-track"><i id="scAxialBar"></i></div>
+              <div class="sc-progress-meta"><span>SCROLL DEPTH</span><b id="scAxialPct">00%</b></div>
+            </div>
+            <button class="sc-btn sc-btn-solid" id="scAxialLab" type="button"><span>OPEN FULL TEARDOWN</span><i>↗</i></button>
+          </div>
+          <div class="sc-layer-rail" id="scLayerRail" aria-label="轴向层">
+            <button type="button" data-layer="0"><b>01</b><span>后盖与紧固</span><em>REAR</em></button>
+            <button type="button" data-layer="1"><b>02</b><span>压圈与盖板</span><em>RETAINER</em></button>
+            <button type="button" data-layer="2"><b>03</b><span>定子与导管</span><em>STATOR</em></button>
+            <button type="button" data-layer="3"><b>04</b><span>传感器与弹性件</span><em>SENSOR</em></button>
+            <button type="button" data-layer="4"><b>05</b><span>转子与主轴</span><em>ROTOR</em></button>
+            <button type="button" data-layer="5"><b>06</b><span>外转子壳</span><em>SHELL</em></button>
+            <button type="button" data-layer="6"><b>07</b><span>前端盖与法兰</span><em>FRONT</em></button>
+            <button type="button" data-layer="7"><b>08</b><span>输出齿轮</span><em>PINION</em></button>
+          </div>
+          <div class="sc-axial-side">AXIAL SERVICE / REAR TO OUTPUT</div>
+        </div>
+      </section>
+
+      <section class="sc-section sc-storm" id="scStorm">
+        <div class="sc-storm-sticky">
+          <div class="sc-storm-copy">
+            <div class="sc-kicker"><span>02 / SPACE FX</span><i></i><span>CONTROLLED STORM</span></div>
+            <h2 class="sc-headline">NOT CHAOS.<br>AN <em>ORBIT.</em></h2>
+            <p class="sc-section-copy">37 个零件离开轴向层，进入三条轨道。背景闪电持续跳动，电弧穿过零件之间，随机点亮它们。不是随机散落，而是一场被控制的风暴。</p>
+            <div class="sc-storm-stats">
+              <span><b>03</b><em>ORBITAL BANDS</em></span>
+              <span><b>37</b><em>FREE PARTS</em></span>
+              <span><b>∞</b><em>STRIKE PATHS</em></span>
+            </div>
+            <div class="sc-storm-actions">
+              <button class="sc-btn sc-btn-line" id="scStormBg" type="button"><span>SWITCH BACKGROUND</span><i>◐</i></button>
+              <button class="sc-btn sc-btn-solid" id="scStormLab" type="button"><span>ENTER THE STORM LAB</span><i>↗</i></button>
+            </div>
+          </div>
+          <div class="sc-storm-side">
+            <span class="sc-live"><i></i> LIVE FIELD</span>
+            <span>LIGHTNING / PARTICLES / ORBIT</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="sc-section sc-material" id="scMaterial">
+        <div class="sc-material-head">
+          <div class="sc-material-title">
+            <div class="sc-kicker"><span>03 / MATERIAL LOGIC</span><i></i><span>OFFICIAL PALETTE</span></div>
+            <h2 class="sc-headline sc-headline-dark">BLACK. RED.<br><em>SILVER. SIGNAL.</em></h2>
+          </div>
+          <p>颜色不是装饰，而是结构提示。黑色负责隐藏，红色负责警告与能量，银色负责精度，绿色与金色只出现在真实功能件上。</p>
+        </div>
+        <div class="sc-material-grid">
+          <article class="sc-material-card sc-card-black">
+            <div class="sc-card-top"><span>01</span><em>ANODIZED</em></div>
+            <div class="sc-card-image"><img src="site/assets/material-shell.jpg" alt="黑色阳极氧化定子筒"></div>
+            <h3>BLACK SHELL</h3>
+            <p>黑色阳极氧化外壳与定子筒。低反射表面让结构线、红色内衬和白色铭牌成为唯一亮点。</p>
+            <div class="sc-card-tags"><span>P06</span><span>P24</span><span>#1B1B1B</span></div>
+          </article>
+          <article class="sc-material-card sc-card-red">
+            <div class="sc-card-top"><span>02</span><em>ENERGY</em></div>
+            <div class="sc-card-image"><img src="site/assets/material-core.jpg" alt="红色内衬与定子压圈"></div>
+            <h3>RED CORE</h3>
+            <p>红色不是表层：它藏在切口之后，在内衬和压圈上出现。风暴模式下，它被电弧进一步点亮。</p>
+            <div class="sc-card-tags"><span>P33</span><span>#DB242A</span><span>#981B2B</span></div>
+          </article>
+          <article class="sc-material-card sc-card-metal">
+            <div class="sc-card-top"><span>03</span><em>PRECISION</em></div>
+            <div class="sc-card-image"><img src="site/assets/material-axis.jpg" alt="银色主轴、PCB 与内部结构"></div>
+            <h3>SILVER AXIS</h3>
+            <p>轴、轴承、垫片和弹簧保持金属本色。绿色 PCB 与金色端子只负责电连接，不参与装饰。</p>
+            <div class="sc-card-tags"><span>P14</span><span>P29</span><span>P32</span></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="sc-section sc-data" id="scData">
+        <div class="sc-data-head">
+          <div class="sc-kicker"><span>04 / MEASURED</span><i></i><span>MODEL DATA</span></div>
+          <h2 class="sc-headline">THE NUMBERS<br>BEHIND <em>THE OBJECT.</em></h2>
+        </div>
+        <div class="sc-data-grid">
+          <div class="sc-big-stat"><b>37</b><span>INDEPENDENT PARTS</span><em>来自 C4D 的独立网格</em></div>
+          <div class="sc-big-stat"><b>08</b><span>AXIAL LAYERS</span><em>从后盖到输出齿轮</em></div>
+          <div class="sc-big-stat"><b>60 210</b><span>TRIANGLES</span><em>完整几何面数</em></div>
+          <div class="sc-big-stat"><b>03OK</b><span>C4D SOURCE</span><em>Cinema 4D S24.111</em></div>
+        </div>
+        <div class="sc-spec-table">
+          <div class="sc-spec-row"><span>MODEL BOX</span><b>80.7 × 239.8 × 69.4 u</b><em>LOCAL UNITS</em></div>
+          <div class="sc-spec-row"><span>ORIGINAL GROUPS</span><b>12</b><em>C4D ASSEMBLY META</em></div>
+          <div class="sc-spec-row"><span>AXIAL ROTATION</span><b>−90°</b><em>PINION TO +X</em></div>
+          <div class="sc-spec-row"><span>LONGEST PART</span><b>P14 / SHAFT</b><em>178.7 u</em></div>
+          <div class="sc-spec-row"><span>LARGEST MESH</span><b>P23 / CORE</b><em>23 022 TRIANGLES</em></div>
+        </div>
+        <div class="sc-data-note">
+          <p>8 个轴向层由零件功能与装配位置推断，不是官方 BOM。名称、层内顺序与材质映射按几何关系和官方产品片重新整理，需品牌方复核。V6 Pro 的电气与性能参数尚未提供，本页只展示几何、装配与视觉数据。</p>
+          <span>SOURCE / 03OK.c4d · C4D → GLTF → THREE.JS</span>
+        </div>
+      </section>
+
+      <section class="sc-section sc-film" id="scFilm">
+        <div class="sc-film-head">
+          <div class="sc-kicker"><span>05 / THE FILM</span><i></i><span>00:30 / 1080P</span></div>
+          <h2 class="sc-headline">WATCH THE<br><em>OBJECT MOVE.</em></h2>
+        </div>
+        <div class="sc-film-frame">
+          <video id="scFilmVideo" src="site/assets/film.mp4" poster="site/assets/film-poster.jpg" preload="none" playsinline controls></video>
+          <button class="sc-film-play" id="scFilmPlay" type="button" aria-label="播放展示视频">
+            <span class="sc-play-ring"><i></i></span>
+            <span>PLAY FILM</span>
+          </button>
+          <div class="sc-film-meta"><span>SOLINK V6 PRO / AXIAL TEARDOWN</span><span>SOUND / ZHENLOE — WE NEVER</span></div>
+        </div>
+      </section>
+
+      <section class="sc-section sc-lab-cta" id="scLabCta">
+        <div class="sc-cta-inner">
+          <div class="sc-kicker"><span>INTERACTIVE / 01</span><i></i><span>FULL TEARDOWN</span></div>
+          <h2 class="sc-headline sc-headline-big">OPEN THE<br><em>MOTOR.</em></h2>
+          <p>进入完整拆解工作台，逐层检查 37 个零件、查看几何与材质数据，启动空间风暴。</p>
+          <button class="sc-btn sc-btn-solid sc-btn-large" id="scLabCtaBtn" type="button"><span>ENTER TEARDOWN LAB</span><i>↗</i></button>
+          <div class="sc-cta-meta"><span>8 LAYERS</span><span>37 PARTS</span><span>60 210 TRIANGLES</span></div>
+        </div>
+      </section>
+
+      <footer class="sc-footer">
+        <div class="sc-footer-brand">
+          <img src="site/assets/solink-mark-red.png" alt="Solink Motor">
+          <span><b>SOLINK</b> MOTOR</span>
+        </div>
+        <div class="sc-footer-cols">
+          <div><span>MODEL</span><b>03OK.c4d</b><em>Cinema 4D S24.111</em></div>
+          <div><span>WEB</span><b>Three.js r160</b><em>Lenis / Archivo / Anton</em></div>
+          <div><span>MUSIC</span><b>ZHENLOE — We Never</b><em>用户提供音轨</em></div>
+          <div><span>NOTE</span><b>Concept showcase</b><em>非官方 BOM / 参数未提供</em></div>
+        </div>
+        <div class="sc-footer-bottom">
+          <span>© 2026 SOLINK MOTOR / V6 PRO</span>
+          <span>AXIAL DRIVE · PRECISION IN MOTION</span>
+          <a href="#scHero" data-scroll>BACK TO TOP ↑</a>
+        </div>
+      </footer>
+    </main>
+
+    <div class="sc-now-playing" id="scNowPlaying" role="status">
+      <button type="button" id="scNowToggle" aria-label="背景音乐开关">
+        <span class="sc-now-bars"><i></i><i></i><i></i><i></i><i></i></span>
+      </button>
+      <div><span>NOW PLAYING</span><b>ZHENLOE — WE NEVER</b></div>
+      <em>LOOP</em>
+    </div>
+
+    <div class="sc-menu-panel" id="scMenuPanel" aria-hidden="true">
+      <div class="sc-menu-head"><span>MENU</span><button id="scMenuClose" type="button" aria-label="关闭菜单">×</button></div>
+      <a href="#scAxial" data-scroll><i>01</i> AXIAL</a>
+      <a href="#scStorm" data-scroll><i>02</i> STORM</a>
+      <a href="#scMaterial" data-scroll><i>03</i> MATERIAL</a>
+      <a href="#scData" data-scroll><i>04</i> DATA</a>
+      <a href="#scFilm" data-scroll><i>05</i> FILM</a>
+      <a href="#scLabCta" data-scroll><i>↗</i> TEARDOWN LAB</a>
+      <span class="sc-menu-meta">V6 PRO / AXIAL DRIVE / 2026</span>
+    </div>
+
+  </div>
+
+  <audio id="bgm" src="site/assets/we-never.m4a" loop preload="auto"></audio>
+
+  <div id="helpModal" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close-help></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <div class="modal-head">
+        <div>
+          <div class="eyebrow">AXIAL SERVICE MANUAL</div>
+          <h2 id="helpTitle">操作指南</h2>
+        </div>
+        <button class="modal-close" data-close-help aria-label="关闭">×</button>
+      </div>
+      <div class="help-grid">
+        <div class="help-item">
+          <div class="help-ico"><svg viewBox="0 0 24 24"><path d="M8 4v9a4 4 0 0 0 8 0V4"/><path d="M5 9h3M16 9h3"/></svg></div>
+          <div><b>旋转 / 缩放 / 平移</b><p>拖拽旋转，滚轮或双指缩放，右键拖拽平移。双击零件可聚焦。</p></div>
+        </div>
+        <div class="help-item">
+          <div class="help-ico"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/><path d="m16 15 4 2-4 2"/></svg></div>
+          <div><b>轴向层级</b><p>点击“轴向拆解”后，产品转为侧视，从后盖到小齿轮分成 8 个轴向层；点击左侧层名即可展开该层零件。</p></div>
+        </div>
+        <div class="help-item">
+          <div class="help-ico"><svg viewBox="0 0 24 24"><path d="M12 3v18M5 8l7-5 7 5M5 16l7 5 7-5"/></svg></div>
+          <div><b>逐层细拆</b><p>选中层会在同一轴线上把该层子件拉开；点击零件可单独高亮、查看几何与装配信息。</p></div>
+        </div>
+        <div class="help-item">
+          <div class="help-ico"><svg viewBox="0 0 24 24"><path d="M5 10v4h3l4 3V7l-4 3z"/><path d="M16 8.5a5 5 0 0 1 0 7"/></svg></div>
+          <div><b>音效与透视</b><p>音效为 Web Audio 实时合成；外壳透视可把主壳体变成半透明线框，检查内部轴系与 PCB。</p></div>
+        </div>
+        <div class="help-item">
+          <div class="help-ico"><svg viewBox="0 0 24 24"><path d="M13.5 2 4.5 13h5.8L9 22l10-12h-6z"/></svg></div>
+          <div><b>空间漂移</b><p>轴向展开后点击“空间漂移”，37 个零件散入空间自由漂浮；背景闪电、零件间电弧、粒子与随机点亮同时启动。按 F 或再次点击即可退出。</p></div>
+        </div>
+      </div>
+      <div class="shortcut-table">
+        <div><kbd>SPACE</kbd><span>轴向拆解 / 反向装配</span></div>
+        <div><kbd>← →</kbd><span>上一层 / 下一层</span></div>
+        <div><kbd>F</kbd><span>空间漂移 / 退出漂移</span></div>
+        <div><kbd>B</kbd><span>影棚灰 / 深空黑</span></div>
+        <div><kbd>L</kbd><span>当前层标注</span></div>
+        <div><kbd>S</kbd><span>音效开关</span></div>
+        <div><kbd>T</kbd><span>外壳透视</span></div>
+        <div><kbd>R</kbd><span>复位视角</span></div>
+        <div><kbd>ESC</kbd><span>取消选择 / 退出漂移</span></div>
+      </div>
+      <div class="modal-note">
+        模型来自 Cinema 4D 文件 03OK.c4d 的导出网格，共 37 个独立网格、60,210 个三角面。C4D 中的 Octane 材质没有随几何导出，网页按官方产品片重新映射为黑 / 红 / 银 / 白 PBR 材质，并保留绿色 PCB 与金色端子。
+        8 个轴向层由零件功能与装配位置推断，层内顺序按轴向坐标排序；它用于展示拆解逻辑，不等同于官方 BOM。V6 Pro 的电气与性能参数尚未提供，页面只展示几何、装配与轴向层级数据。
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="site/vendor/three.min.js"></script>
+<script src="site/assets/v6-model-data.js"></script>
+<script src="site/js/app.js"></script>
+<script src="site/vendor/lenis.min.js"></script>
+<script src="site/js/showcase.js"></script>
+</body>
+</html>
+
